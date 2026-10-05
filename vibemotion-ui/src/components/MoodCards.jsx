@@ -34,7 +34,7 @@ export const moods = [
   { name: "Meditation", image: "/assets/moods/moodcards_meditation.webp", category: "Relax" }
 ];
 
-function MoodCards({ onSelectMood, selectedCategory }) {
+function MoodCards({ onSelectMood, selectedCategory, selectedMood }) {
   const handleMouseMove = (e) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();
@@ -64,10 +64,14 @@ function MoodCards({ onSelectMood, selectedCategory }) {
           onMouseMove={handleMouseMove}
           onMouseLeave={resetTilt}
           onClick={() => onSelectMood(mood.name)}
-          className="relative w-40 sm:w-52 h-64 sm:h-80 rounded-2xl cursor-pointer overflow-hidden
+          className={`relative w-40 sm:w-52 h-64 sm:h-80 rounded-2xl cursor-pointer overflow-hidden
                      shadow-[0_0_25px_#a855f7aa] hover:shadow-[0_0_50px_#c084fc]
                      bg-gradient-to-br from-neon-purple to-neon-dark
-                     transition-transform duration-150 ease-out transform-gpu"
+                     transition-transform duration-150 ease-out transform-gpu ${
+                       selectedMood === mood.name
+                         ? "ring-4 ring-neon-glow shadow-[0_0_50px_#c084fc]"
+                         : ""
+                     }`}
         >
           <img
             src={mood.image}
