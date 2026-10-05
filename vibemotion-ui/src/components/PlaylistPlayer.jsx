@@ -4,7 +4,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function PlaylistPlayer({ playlist, onClose }) {
+export default function PlaylistPlayer({ playlist, onClose, accent = "#a855f7" }) {
   return (
     <AnimatePresence>
       {playlist && (
@@ -18,11 +18,14 @@ export default function PlaylistPlayer({ playlist, onClose }) {
         >
           <div
             className="pointer-events-auto mx-auto w-full max-w-3xl rounded-2xl
-                       border border-neon-purple/50 bg-[#1a002e]/95 backdrop-blur-md
-                       shadow-[0_0_30px_#a855f780] p-3"
+                       border bg-black/80 backdrop-blur-md p-3 transition-colors duration-1000"
+            style={{ borderColor: `${accent}80`, boxShadow: `0 0 30px ${accent}60` }}
           >
             <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-sm text-neon-glow font-semibold truncate pr-4">
+              <span
+                className="text-sm font-semibold truncate pr-4"
+                style={{ color: accent }}
+              >
                 Now playing: {playlist.name}
               </span>
               <div className="flex items-center gap-3 shrink-0">

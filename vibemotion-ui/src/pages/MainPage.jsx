@@ -1,17 +1,31 @@
 // src/pages/MainPage.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { fetchPlaylists } from "../api";
 import SideBar from "../components/SideBar";
-import MoodCards from "../components/MoodCards";
+import MoodCards, { moods } from "../components/MoodCards";
 import SearchBar from "../components/SearchBar";
 import CategoryBar from "../components/CategoryBar";
 import PlaylistPlayer from "../components/PlaylistPlayer";
 import { supabase } from "../supabaseClient";
+import { themeForMood } from "../moodThemes";
 
 // A Spotify leírások HTML-t és entitásokat tartalmazhatnak (<a>, &#x27; ...)
 const plainText = (html = "") =>
   new DOMParser().parseFromString(html, "text/html").body.textContent || "";
+
+// Playlistkártyák belépő animációja (egymás után, lépcsőzetesen)
+const listVariants = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const cardVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.96 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: "spring", stiffness: 220, damping: 22 },
+  },
+};
 
 export default function MainPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -21,6 +35,7 @@ export default function MainPage() {
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [selectedMood, setSelectedMood] = useState(null);
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
+  const theme = themeForMood(moods.find((m) => m.name === selectedMood));
   const resultsRef = useRef(null);
   const requestIdRef = useRef(0); // elavult válaszok eldobására
   const navigate = useNavigate();
@@ -75,11 +90,23 @@ export default function MainPage() {
   }, []);
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="min-h-screen text-white flex flex-col relative">
-      <div
-        className="absolute inset-0 bg-gradient-to-b from-[#000000] via-[#1a002e] to-[#3b0066] z-0"
-        style={{ backgroundAttachment: "fixed" }}
-      />
+      {/* Háttér: hangulatváltáskor az új színátmenet fokozatosan ráúszik a régire */}
+      <div className="fixed inset-0 z-0 bg-black" />
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={theme.id}
+          className="fixed inset-0 z-0"
+          style={{
+            background: `linear-gradient(to bottom, ${theme.from}, ${theme.via}, ${theme.to})`,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0.99, transition: { duration: 1.2 } }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+        />
+      </AnimatePresence>
 
       <div className="w-full flex justify-between items-center p-6 fixed top-0 left-0 z-50
                       bg-black/70 backdrop-blur-md">
@@ -136,9 +163,16 @@ export default function MainPage() {
               className="scroll-mt-28 mt-12 w-full max-w-5xl mx-auto px-2 sm:px-8"
               aria-live="polite"
             >
-              <h2 className="text-2xl font-bold text-neon-glow drop-shadow-[0_0_10px_#a855f7]">
+              <motion.h2
+                key={selectedMood}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="text-2xl font-bold"
+                style={{ color: theme.accent, textShadow: `0 0 14px ${theme.accent}99` }}
+              >
                 Playlists for “{selectedMood}”
-              </h2>
+              </motion.h2>
 
               {status === "loading" && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
@@ -179,17 +213,29 @@ export default function MainPage() {
               )}
 
               {status === "success" && playlists.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6"
+                  variants={listVariants}
+                  initial="hidden"
+                  animate="show"
+                >
                   {playlists.map((p) => (
-                    <button
+                    <motion.button
                       type="button"
                       key={p.id}
+                      variants={cardVariants}
+                      whileHover={{ y: -6, scale: 1.03 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedPlaylist(p)}
-                      className={`text-left border rounded-xl shadow-[0_0_15px_#a855f750] hover:shadow-[0_0_25px_#a855f7] transition-transform bg-[#1a002e]/60 backdrop-blur-sm hover:scale-105 ${
+                      className="text-left border border-neon-purple/40 rounded-xl shadow-[0_0_15px_#a855f750] hover:shadow-[0_0_25px_#a855f7] bg-[#1a002e]/60 backdrop-blur-sm"
+                      style={
                         selectedPlaylist?.id === p.id
-                          ? "border-neon-glow ring-2 ring-neon-glow"
-                          : "border-neon-purple/40"
-                      }`}
+                          ? {
+                              borderColor: theme.accent,
+                              boxShadow: `0 0 0 2px ${theme.accent}, 0 0 28px ${theme.accent}80`,
+                            }
+                          : undefined
+                      }
                     >
                       <div className="w-full aspect-[4/3] overflow-hidden rounded-t-xl bg-neon-purple/10">
                         {p.images?.[0]?.url && (
@@ -209,9 +255,9 @@ export default function MainPage() {
                           {plainText(p.description) || "No description"}
                         </p>
                       </div>
-                    </button>
+                    </motion.button>
                   ))}
-                </div>
+                </motion.div>
               )}
             </section>
           )}
@@ -220,8 +266,10 @@ export default function MainPage() {
 
       <PlaylistPlayer
         playlist={selectedPlaylist}
+        accent={theme.accent}
         onClose={() => setSelectedPlaylist(null)}
       />
     </div>
+    </MotionConfig>
   );
 }
