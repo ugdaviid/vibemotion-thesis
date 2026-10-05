@@ -35,7 +35,7 @@ export default function AuthPage() {
     setInfo("");
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
-        redirectTo: "http://localhost:3000/update-password",
+        redirectTo: `${window.location.origin}/update-password`,
       });
       if (error) throw error;
       setInfo("Check your email for the reset link!");
@@ -118,7 +118,7 @@ export default function AuthPage() {
     <div
       className="relative w-screen h-screen overflow-hidden bg-center bg-no-repeat"
       style={{
-        backgroundImage: `url(${process.env.PUBLIC_URL}/assets/main_background4.jpeg)`,
+        backgroundImage: `url(${process.env.PUBLIC_URL}/assets/main_background4.webp)`,
         backgroundPosition: "30% center",
         backgroundSize: "cover",
       }}
@@ -205,7 +205,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      window.location.assign("http://localhost:5000/api/auth/google")
+                      navigate("/google")
                     }
                     className="w-full p-3 rounded-xl bg-white text-black font-semibold flex items-center justify-center gap-2 hover:scale-105 transition"
                   >
@@ -220,7 +220,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      window.location.assign("http://localhost:5000/api/auth/spotify")
+                      navigate("/spotify")
                     }
                     className="w-full p-3 rounded-xl bg-black text-white font-semibold flex items-center justify-center gap-2 hover:scale-105 transition"
                   >

@@ -1,5 +1,0 @@
-mkdir moodify-backend
-cd moodify-backend
-npm init -y
-npm install express cors axios jsonwebtoken bcryptjs dotenv
-node server.js

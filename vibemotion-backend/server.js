@@ -5,80 +5,94 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const {
+  SPOTIFY_CLIENT_ID,
+  SPOTIFY_CLIENT_SECRET,
+  FRONTEND_URL = "http://localhost:3000,https://localhost:3000",
+  PORT = 5000,
+} = process.env;
+
+if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+  console.error("❌ Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET in .env");
+  process.exit(1);
+}
+
 const app = express();
-app.use(cors());
+app.use(
+  cors({ origin: FRONTEND_URL.split(",").map((o) => o.trim()) })
+);
 app.use(express.json());
 
 /**
  * ================================
- * 🎧 Spotify API Token
+ * 🎧 Spotify token (Client Credentials)
+ * A tokent a szerver memóriában tartja, és csak lejáratkor kér újat.
+ * A token SOHA nem megy ki a böngészőnek.
  * ================================
  */
-app.get("/api/token", async (req, res) => {
-  try {
-    const credentials = `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`;
-    const encoded = Buffer.from(credentials).toString("base64");
+let cachedToken = { value: null, expiresAt: 0 };
 
-    const response = await axios.post(
-      "https://accounts.spotify.com/api/token",
-      new URLSearchParams({ grant_type: "client_credentials" }),
-      {
-        headers: {
-          Authorization: `Basic ${encoded}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-
-    res.json(response.data);
-  } catch (err) {
-    console.error("❌ Spotify token error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to get Spotify token" });
+async function getAccessToken() {
+  if (cachedToken.value && Date.now() < cachedToken.expiresAt) {
+    return cachedToken.value;
   }
-});
+
+  const credentials = Buffer.from(
+    `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
+  ).toString("base64");
+
+  const { data } = await axios.post(
+    "https://accounts.spotify.com/api/token",
+    new URLSearchParams({ grant_type: "client_credentials" }),
+    {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    }
+  );
+
+  // 60 mp biztonsági tartalék a lejárat előtt
+  cachedToken = {
+    value: data.access_token,
+    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+  };
+  return cachedToken.value;
+}
 
 /**
  * ================================
  * 🎵 Search Spotify playlists
+ * GET /api/playlists?mood=chill
  * ================================
  */
 app.get("/api/playlists", async (req, res) => {
-  const { mood } = req.query;
+  const mood = String(req.query.mood ?? "").trim();
+
   if (!mood) return res.status(400).json({ error: "Mood is required" });
+  if (mood.length > 50) {
+    return res.status(400).json({ error: "Mood is too long (max 50 characters)" });
+  }
 
   try {
-    // Token lekérése
-    const tokenRes = await axios.post(
-      "https://accounts.spotify.com/api/token",
-      new URLSearchParams({ grant_type: "client_credentials" }),
-      {
-        headers: {
-          Authorization:
-            "Basic " +
-            Buffer.from(
-              `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-            ).toString("base64"),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
+    const accessToken = await getAccessToken();
 
-    const accessToken = tokenRes.data.access_token;
+    const response = await axios.get("https://api.spotify.com/v1/search", {
+      params: { q: mood, type: "playlist", limit: 10 },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-    // Playlist keresés
-    const response = await axios.get(
-      `https://api.spotify.com/v1/search?q=${mood}&type=playlist&limit=12`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    res.json(response.data.playlists.items);
+    // A Spotify néha null elemeket ad vissza a listában
+    const items = (response.data?.playlists?.items ?? []).filter(Boolean);
+    res.json(items);
   } catch (err) {
     console.error("❌ Spotify playlist error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to search playlists" });
+
+    // Ha a token érvénytelen lett, a következő kérésnél újat kérünk
+    if (err.response?.status === 401) {
+      cachedToken = { value: null, expiresAt: 0 };
+    }
+    res.status(502).json({ error: "Failed to search playlists" });
   }
 });
 
@@ -87,7 +101,6 @@ app.get("/api/playlists", async (req, res) => {
  * 🚀 Server Start
  * ================================
  */
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`💜 Spotify Backend running at http://localhost:${PORT}`)
 );

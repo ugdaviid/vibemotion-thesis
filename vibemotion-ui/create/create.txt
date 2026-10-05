@@ -1,4 +1,0 @@
-npx create-react-app moodify-ui
-cd moodify-ui
-npm install framer-motion tailwindcss axios
-npm start

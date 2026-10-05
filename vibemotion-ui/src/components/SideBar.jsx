@@ -3,8 +3,8 @@ import React, { useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 const menuItems = [
-  { name: "Profile", path: "/profile" },
-  { name: "Favourite", path: "/favourite" },
+  { name: "Home", path: "/main" },
+  // TODO: Profile (/profile) és Favourite (/favourite) – ha lesz hozzájuk oldal és route
 ];
 
 function SideBarComponent({ isOpen, onClose }) {

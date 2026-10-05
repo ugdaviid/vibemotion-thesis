@@ -1,72 +1,65 @@
-// src/components/SearchBar.jsx
-
 import React, {
   useState,
   useRef,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 
-import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import debounce from "lodash.debounce";
+import { fetchPlaylists } from "../api";
 
-function SearchBar({ cachedPlaylists }) {
+function SearchBar({ onSelectPlaylist }) {
   const [mood, setMood] = useState("");
   const [playlists, setPlaylists] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const containerRef = useRef(null);
+  const cacheRef = useRef({}); // keresés -> találatok
 
   // ================================
-  // Fetch playlists
+  // Load playlists (with cache)
   // ================================
-  const fetchPlaylists = useCallback(
-    async (value) => {
-      if (!value.trim()) {
-        setPlaylists([]);
-        setShowDropdown(false);
-        return;
-      }
+  const loadPlaylists = useCallback(async (value) => {
+    const query = value.trim();
 
-      // ✅ Biztonságos cache ellenőrzés
-      if (cachedPlaylists?.current?.[value]) {
-        setPlaylists(cachedPlaylists.current[value]);
-        setShowDropdown(true);
-        return;
-      }
+    if (!query) {
+      setPlaylists([]);
+      setShowDropdown(false);
+      return;
+    }
 
-      try {
-        const response = await axios.get(
-          `http://localhost:5000/api/playlists?mood=${value}`
-        );
+    const key = query.toLowerCase();
+    if (cacheRef.current[key]) {
+      setPlaylists(cacheRef.current[key]);
+      setShowDropdown(true);
+      return;
+    }
 
-        const filtered = response.data.filter((p) => p !== null);
+    try {
+      const items = await fetchPlaylists(query);
+      cacheRef.current[key] = items;
+      setPlaylists(items);
+      setShowDropdown(true);
+    } catch (error) {
+      console.error("Error fetching playlists:", error);
+    }
+  }, []);
 
-        // Cache mentés
-        if (cachedPlaylists?.current) {
-          cachedPlaylists.current[value] = filtered;
-        }
-
-        setPlaylists(filtered);
-        setShowDropdown(true);
-      } catch (error) {
-        console.error("Error fetching playlists:", error);
-      }
-    },
-    [cachedPlaylists]
+  // Debounce (egyszer jön létre, nem minden rendernél)
+  const debouncedLoad = useMemo(
+    () => debounce(loadPlaylists, 300),
+    [loadPlaylists]
   );
 
-  // Debounce
-  const debouncedFetch = useCallback(
-    debounce(fetchPlaylists, 300),
-    [fetchPlaylists]
-  );
+  // Komponens eltűnésekor a függőben lévő hívás törlése
+  useEffect(() => () => debouncedLoad.cancel(), [debouncedLoad]);
 
   // Input change
   const handleChange = (e) => {
     setMood(e.target.value);
-    debouncedFetch(e.target.value);
+    debouncedLoad(e.target.value);
   };
 
   // Click outside
@@ -129,17 +122,19 @@ function SearchBar({ cachedPlaylists }) {
                        backdrop-blur-sm"
           >
             {playlists.map((p) => (
-              <a
+              <button
+                type="button"
                 key={p.id}
-                href={p.external_urls.spotify}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3
+                onClick={() => {
+                  onSelectPlaylist?.(p);
+                  setShowDropdown(false);
+                }}
+                className="w-full text-left flex items-center gap-3 p-3
                            hover:bg-neon-purple/20
                            transition-all duration-200"
               >
                 <img
-                  src={p.images[0]?.url}
+                  src={p.images?.[0]?.url}
                   alt={p.name}
                   className="w-12 h-12 object-cover rounded-md
                              border border-neon-purple/40"
@@ -154,7 +149,7 @@ function SearchBar({ cachedPlaylists }) {
                     {p.description || "No description"}
                   </p>
                 </div>
-              </a>
+              </button>
             ))}
           </motion.div>
         )}

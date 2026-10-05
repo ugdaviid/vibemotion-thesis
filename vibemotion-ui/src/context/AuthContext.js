@@ -24,12 +24,12 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Google Login                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+  // Google Login
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "http://localhost:3000/auth/callback",
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
   };
@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
     await supabase.auth.signInWithOAuth({
       provider: "spotify",
       options: {
-        redirectTo: "http://localhost:3000/auth/callback",
+        redirectTo: `${window.location.origin}/auth/callback`,
         scopes: "user-read-email playlist-read-private",
       },
     });

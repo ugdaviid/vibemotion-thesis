@@ -1,11 +1,12 @@
 // src/pages/MainPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { fetchPlaylists } from "../api";
 import SideBar from "../components/SideBar";
 import MoodCards from "../components/MoodCards";
 import SearchBar from "../components/SearchBar";
 import CategoryBar from "../components/CategoryBar";
+import PlaylistPlayer from "../components/PlaylistPlayer";
 import { supabase } from "../supabaseClient";
 
 export default function MainPage() {
@@ -13,6 +14,7 @@ export default function MainPage() {
   const [username, setUsername] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [playlists, setPlaylists] = useState([]);
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,10 +44,7 @@ export default function MainPage() {
 
   const handleMoodSelect = async (moodName) => {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/playlists?mood=${moodName}`
-      );
-      const filtered = response.data.filter((p) => p !== null);
+      const filtered = await fetchPlaylists(moodName);
       setPlaylists(filtered);
     } catch (error) {
       console.error("Spotify playlists fetch error:", error);
@@ -89,8 +88,12 @@ export default function MainPage() {
       <div className="flex pt-24 relative z-10">
         <SideBar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <div className="flex-1 md:ml-60 px-4 sm:px-8">
-          <SearchBar />
+        <div
+          className={`flex-1 md:ml-60 px-4 sm:px-8 ${
+            selectedPlaylist ? "pb-[26rem]" : ""
+          }`}
+        >
+          <SearchBar onSelectPlaylist={setSelectedPlaylist} />
 
           <CategoryBar
             selectedCategory={selectedCategory}
@@ -105,16 +108,19 @@ export default function MainPage() {
           {playlists.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 p-8 w-full max-w-5xl mx-auto">
               {playlists.map((p) => (
-                <a
+                <button
+                  type="button"
                   key={p.id}
-                  href={p.external_urls.spotify}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="border border-neon-purple/40 rounded-xl shadow-[0_0_15px_#a855f750] hover:shadow-[0_0_25px_#a855f7] transition-transform bg-[#1a002e]/60 backdrop-blur-sm hover:scale-105"
+                  onClick={() => setSelectedPlaylist(p)}
+                  className={`text-left border rounded-xl shadow-[0_0_15px_#a855f750] hover:shadow-[0_0_25px_#a855f7] transition-transform bg-[#1a002e]/60 backdrop-blur-sm hover:scale-105 ${
+                    selectedPlaylist?.id === p.id
+                      ? "border-neon-glow ring-2 ring-neon-glow"
+                      : "border-neon-purple/40"
+                  }`}
                 >
                   <div className="w-full aspect-[4/3] overflow-hidden rounded-t-xl">
                     <img
-                      src={p.images[0]?.url}
+                      src={p.images?.[0]?.url}
                       alt={p.name}
                       className="w-full h-full object-cover opacity-90 hover:opacity-100 transition"
                       loading="lazy"
@@ -126,12 +132,17 @@ export default function MainPage() {
                       {p.description || "No description"}
                     </p>
                   </div>
-                </a>
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <PlaylistPlayer
+        playlist={selectedPlaylist}
+        onClose={() => setSelectedPlaylist(null)}
+      />
     </div>
   );
 }
