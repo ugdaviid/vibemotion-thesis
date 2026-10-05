@@ -116,18 +116,22 @@ export default function AuthPage() {
   // Login/Register form
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden bg-center bg-no-repeat"
+      className="relative w-full h-screen overflow-hidden bg-center bg-no-repeat"
       style={{
+        height: "100dvh", // mobil böngészők címsora miatt
         backgroundImage: `url(${process.env.PUBLIC_URL}/assets/main_background4.webp)`,
         backgroundPosition: "30% center",
         backgroundSize: "cover",
       }}
     >
       {/* Form panel */}
-      <div className="absolute top-0 h-full flex flex-col items-center justify-center left-0 md:left-auto md:right-0 px-6 sm:px-12 md:px-16 lg:px-20 w-full md:w-[42%] lg:w-[40%] max-w-full transition-all duration-500 ease-in-out">
+      <div className="absolute top-0 h-full left-0 md:left-auto md:right-0 w-full md:w-[42%] lg:w-[40%] max-w-full transition-all duration-500 ease-in-out">
         <div className="absolute inset-0 bg-[#1b002bdd] shadow-2xl panel-clip rounded-l-[100px]" />
 
-        <div className="absolute mt-24 top-12 w-full text-center z-10 px-2">
+        {/* Görgethető tartalom: kis kijelzőn sem vágódik le az űrlap */}
+        <div className="relative z-10 h-full overflow-y-auto px-6 sm:px-12 md:px-16 lg:px-20">
+        <div className="min-h-full flex flex-col items-center justify-center py-10">
+        <div className="w-full text-center mb-8 px-2">
           <h1
             className="font-extrabold mb-3 text-neon-purple drop-shadow-[0_0_25px_#a855f7]"
             style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)" }}
@@ -142,7 +146,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-col items-center w-full max-w-md mx-auto space-y-8 mt-48">
+        <div className="flex flex-col items-center w-full max-w-md mx-auto">
           <div className="w-full flex flex-col">
             {!forgotPassword && (
               <h2
@@ -273,6 +277,8 @@ export default function AuthPage() {
               </p>
             )}
           </div>
+        </div>
+        </div>
         </div>
       </div>
     </div>

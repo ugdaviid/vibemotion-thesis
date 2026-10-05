@@ -108,7 +108,7 @@ export default function MainPage() {
         />
       </AnimatePresence>
 
-      <div className="w-full flex justify-between items-center p-6 fixed top-0 left-0 z-50
+      <div className="w-full flex justify-between items-center px-4 py-3 sm:p-6 fixed top-0 left-0 z-50
                       bg-black/70 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <button
@@ -117,17 +117,19 @@ export default function MainPage() {
           >
             &#9776;
           </button>
-          <h1 className="text-3xl font-bold text-neon-glow drop-shadow-[0_0_10px_#a855f7]">
+          <h1 className="text-2xl sm:text-3xl font-bold text-neon-glow drop-shadow-[0_0_10px_#a855f7]">
             Vibemotion
           </h1>
         </div>
 
         {username && (
           <div className="flex items-center gap-4">
-            <span className="text-white font-medium">{username}</span>
+            <span className="hidden sm:inline max-w-[14rem] truncate text-white font-medium">
+              {username}
+            </span>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-neon-purple/80 hover:bg-neon-purple rounded-lg text-sm transition"
+              className="px-3 py-2 sm:px-4 bg-neon-purple/80 hover:bg-neon-purple rounded-lg text-sm transition"
             >
               Logout
             </button>
@@ -140,7 +142,7 @@ export default function MainPage() {
 
         <div
           className={`flex-1 md:ml-60 px-4 sm:px-8 ${
-            selectedPlaylist ? "pb-[26rem]" : ""
+            selectedPlaylist ? "pb-[22rem] sm:pb-[26rem]" : ""
           }`}
         >
           <SearchBar onSelectPlaylist={setSelectedPlaylist} />
@@ -175,7 +177,7 @@ export default function MainPage() {
               </motion.h2>
 
               {status === "loading" && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-6">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div
                       key={i}
@@ -214,7 +216,7 @@ export default function MainPage() {
 
               {status === "success" && playlists.length > 0 && (
                 <motion.div
-                  className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6"
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-6"
                   variants={listVariants}
                   initial="hidden"
                   animate="show"

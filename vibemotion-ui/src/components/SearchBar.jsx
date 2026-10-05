@@ -82,7 +82,7 @@ function SearchBar({ onSelectPlaylist }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-md mx-auto mt-10"
+      className="relative w-full max-w-md mx-auto mt-6 sm:mt-10"
     >
       {/* Input */}
       <div className="relative">

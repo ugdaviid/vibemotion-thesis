@@ -57,14 +57,14 @@ function MoodCards({ onSelectMood, selectedCategory, selectedMood }) {
     : moods;
 
   return (
-    <div className="flex flex-wrap justify-center gap-6 mt-6 px-4">
+    <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-6 px-4">
       {filteredMoods.map((mood, i) => (
         <div
           key={i}
           onMouseMove={handleMouseMove}
           onMouseLeave={resetTilt}
           onClick={() => onSelectMood(mood.name)}
-          className={`relative w-40 sm:w-52 h-64 sm:h-80 rounded-2xl cursor-pointer overflow-hidden
+          className={`relative w-[calc(50%-0.5rem)] sm:w-52 h-60 sm:h-80 rounded-2xl cursor-pointer overflow-hidden
                      shadow-[0_0_25px_#a855f7aa] hover:shadow-[0_0_50px_#c084fc]
                      bg-gradient-to-br from-neon-purple to-neon-dark
                      transition-transform duration-150 ease-out transform-gpu ${

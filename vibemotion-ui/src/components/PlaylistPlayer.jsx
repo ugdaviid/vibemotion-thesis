@@ -14,7 +14,7 @@ export default function PlaylistPlayer({ playlist, onClose, accent = "#a855f7" }
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 28 }}
-          className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pointer-events-none"
+          className="fixed bottom-0 left-0 right-0 z-40 px-2 pb-2 sm:px-4 sm:pb-4 pointer-events-none"
         >
           <div
             className="pointer-events-auto mx-auto w-full max-w-3xl rounded-2xl
@@ -53,8 +53,7 @@ export default function PlaylistPlayer({ playlist, onClose, accent = "#a855f7" }
               src={`https://open.spotify.com/embed/playlist/${encodeURIComponent(
                 playlist.id
               )}?utm_source=generator&theme=0`}
-              width="100%"
-              height="352"
+              className="w-full h-[232px] sm:h-[352px]"
               style={{ borderRadius: 12, border: 0 }}
               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
               loading="lazy"

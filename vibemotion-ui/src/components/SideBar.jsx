@@ -37,7 +37,7 @@ function SideBarComponent({ isOpen, onClose }) {
       )}
 
       <div
-        className={`fixed top-24 left-0 h-[calc(100%-6rem)] w-60 transform transition-transform duration-300 ease-in-out
+        className={`fixed top-0 md:top-24 left-0 h-full md:h-[calc(100%-6rem)] pt-16 md:pt-0 w-60 transform transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0 bg-gradient-to-b from-black via-[#1a002e] to-[#3b0066]" : "-translate-x-full"} 
           z-40 md:translate-x-0 md:bg-transparent`}
       >
