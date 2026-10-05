@@ -2,6 +2,7 @@ import express from "express";
 import axios from "axios";
 import cors from "cors";
 import dotenv from "dotenv";
+import { queriesFor, mergeResults } from "./moodSearch.js";
 
 dotenv.config();
 
@@ -64,8 +65,23 @@ async function getAccessToken() {
  * ================================
  * 🎵 Search Spotify playlists
  * GET /api/playlists?mood=chill
+ * Egy hangulathoz több keresőkifejezést futtat (moodSearch.js), az eredményeket
+ * összefésüli. Ha egy keresés hibázik, a többi találatai akkor is visszajönnek.
  * ================================
  */
+const MAX_RESULTS = 12;
+const RESULT_CACHE_MS = 10 * 60 * 1000; // 10 perc: kevesebb Spotify-hívás, gyorsabb válasz
+const resultCache = new Map(); // mood -> { items, expiresAt }
+
+async function searchPlaylists(query, accessToken) {
+  const response = await axios.get("https://api.spotify.com/v1/search", {
+    params: { q: query, type: "playlist", limit: 10 },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  // A Spotify néha null elemeket ad vissza a listában
+  return (response.data?.playlists?.items ?? []).filter(Boolean);
+}
+
 app.get("/api/playlists", async (req, res) => {
   const mood = String(req.query.mood ?? "").trim();
 
@@ -74,16 +90,33 @@ app.get("/api/playlists", async (req, res) => {
     return res.status(400).json({ error: "Mood is too long (max 50 characters)" });
   }
 
+  const cacheKey = mood.toLowerCase();
+  const cached = resultCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) return res.json(cached.items);
+
   try {
     const accessToken = await getAccessToken();
+    const results = await Promise.allSettled(
+      queriesFor(mood).map((q) => searchPlaylists(q, accessToken))
+    );
 
-    const response = await axios.get("https://api.spotify.com/v1/search", {
-      params: { q: mood, type: "playlist", limit: 10 },
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const lists = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
-    // A Spotify néha null elemeket ad vissza a listában
-    const items = (response.data?.playlists?.items ?? []).filter(Boolean);
+    // Ha minden keresés hibázott, az hiba (nem "nincs találat")
+    if (lists.length === 0) throw results[0].reason;
+
+    results
+      .filter((r) => r.status === "rejected")
+      .forEach((r) =>
+        console.warn("⚠️ One search failed:", r.reason?.response?.data || r.reason?.message)
+      );
+
+    const items = mergeResults(lists, MAX_RESULTS);
+
+    // Csak a teljesen sikeres, nem üres válaszokat cache-eljük
+    if (items.length > 0 && lists.length === results.length) {
+      resultCache.set(cacheKey, { items, expiresAt: Date.now() + RESULT_CACHE_MS });
+    }
     res.json(items);
   } catch (err) {
     console.error("❌ Spotify playlist error:", err.response?.data || err.message);
