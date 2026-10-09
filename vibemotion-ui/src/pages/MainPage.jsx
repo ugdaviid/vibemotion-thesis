@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { fetchPlaylists } from "../api";
-import SideBar from "../components/SideBar";
 import MoodCards, { moods } from "../components/MoodCards";
 import SearchBar from "../components/SearchBar";
 import CategoryBar from "../components/CategoryBar";
@@ -30,7 +29,6 @@ const cardVariants = {
 export default function MainPage() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [username, setUsername] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [selectedMood, setSelectedMood] = useState(null);
@@ -51,14 +49,6 @@ export default function MainPage() {
     };
     fetchUser();
   }, [navigate]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) setSidebarOpen(false);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -111,12 +101,7 @@ export default function MainPage() {
       <div className="w-full flex justify-between items-center px-4 py-3 sm:p-6 fixed top-0 left-0 z-50
                       bg-black/70 backdrop-blur-md">
         <div className="flex items-center gap-4">
-          <button
-            className="text-white text-2xl md:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            &#9776;
-          </button>
+          
           <h1 className="text-2xl sm:text-3xl font-bold text-neon-glow drop-shadow-[0_0_10px_#a855f7]">
             Vibemotion
           </h1>
@@ -138,10 +123,9 @@ export default function MainPage() {
       </div>
 
       <div className="flex pt-24 relative z-10">
-        <SideBar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         <div
-          className={`flex-1 md:ml-60 px-4 sm:px-8 ${
+          className={`flex-1 min-w-0 px-4 sm:px-8 ${
             selectedPlaylist ? "pb-[22rem] sm:pb-[26rem]" : ""
           }`}
         >
