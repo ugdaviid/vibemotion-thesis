@@ -33,15 +33,16 @@ export default function MainPage() {
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [selectedMood, setSelectedMood] = useState(null);
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
+  const [sessionExpired, setSessionExpired] = useState(false);
   const theme = themeForMood(moods.find((m) => m.name === selectedMood));
   const resultsRef = useRef(null);
   const requestIdRef = useRef(0); // elavult válaszok eldobására
+  const loggingOutRef = useRef(false); // a saját kijelentkezést ne tekintsük lejáratnak
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getSession();
-      console.log("getSession:", data?.session?.user?.email, error);
       if (error || !data?.session?.user) {
         navigate("/auth");
       } else {
@@ -51,7 +52,18 @@ export default function MainPage() {
     fetchUser();
   }, [navigate]);
 
+  // Lejárt / érvénytelenné vált munkamenet: ne maradjon "belépett" állapotban az oldal
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT" && !loggingOutRef.current) {
+        setSessionExpired(true);
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
   const handleLogout = async () => {
+    loggingOutRef.current = true;
     await supabase.auth.signOut();
     navigate("/auth");
   };
@@ -256,6 +268,29 @@ export default function MainPage() {
           accent={theme.accent}
           onClose={() => setSelectedPlaylist(null)}
         />
+
+        {/* Lejárt munkamenet */}
+        {sessionExpired && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-6"
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <div className="max-w-sm w-full rounded-2xl border border-neon-purple/50 bg-[#1a002e] p-6 text-center shadow-[0_0_30px_#a855f780]">
+              <h2 className="text-xl font-bold text-neon-glow mb-2">Session expired</h2>
+              <p className="text-gray-300 mb-5">
+                Your session has expired. Please log in again to continue.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/auth")}
+                className="px-5 py-2 rounded-lg bg-neon-purple/80 hover:bg-neon-purple transition"
+              >
+                Log in again
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </MotionConfig>
   );

@@ -7,6 +7,7 @@ export const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 export async function fetchPlaylists(mood) {
   const { data } = await axios.get(`${API_URL}/api/playlists`, {
     params: { mood }, // az axios gondoskodik az URL-kódolásról
+    timeout: 15000, // ha a backend nem válaszol, hibát kapunk a végtelen várakozás helyett
   });
   return data.filter(Boolean);
 }

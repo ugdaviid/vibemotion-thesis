@@ -13,19 +13,23 @@ import { fetchPlaylists } from "../api";
 function SearchBar({ onSelectPlaylist }) {
   const [mood, setMood] = useState("");
   const [playlists, setPlaylists] = useState([]);
+  const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [showDropdown, setShowDropdown] = useState(false);
 
   const containerRef = useRef(null);
   const cacheRef = useRef({}); // keresés -> találatok
+  const requestIdRef = useRef(0); // elavult válaszok eldobására
 
   // ================================
   // Load playlists (with cache)
   // ================================
   const loadPlaylists = useCallback(async (value) => {
+    const requestId = ++requestIdRef.current;
     const query = value.trim();
 
     if (!query) {
       setPlaylists([]);
+      setStatus("idle");
       setShowDropdown(false);
       return;
     }
@@ -33,17 +37,25 @@ function SearchBar({ onSelectPlaylist }) {
     const key = query.toLowerCase();
     if (cacheRef.current[key]) {
       setPlaylists(cacheRef.current[key]);
+      setStatus("success");
       setShowDropdown(true);
       return;
     }
 
+    setStatus("loading");
+    setShowDropdown(true);
+
     try {
       const items = await fetchPlaylists(query);
+      if (requestId !== requestIdRef.current) return; // közben újabb keresés indult
       cacheRef.current[key] = items;
       setPlaylists(items);
-      setShowDropdown(true);
+      setStatus("success");
     } catch (error) {
+      if (requestId !== requestIdRef.current) return;
       console.error("Error fetching playlists:", error);
+      setPlaylists([]);
+      setStatus("error");
     }
   }, []);
 
@@ -58,8 +70,19 @@ function SearchBar({ onSelectPlaylist }) {
 
   // Input change
   const handleChange = (e) => {
-    setMood(e.target.value);
-    debouncedLoad(e.target.value);
+    const value = e.target.value;
+    setMood(value);
+
+    if (!value.trim()) {
+      debouncedLoad.cancel();
+      loadPlaylists("");
+      return;
+    }
+
+    // Azonnali visszajelzés a gépelés közben (a tényleges keresés 300 ms múlva indul)
+    setStatus("loading");
+    setShowDropdown(true);
+    debouncedLoad(value);
   };
 
   // Click outside
@@ -91,6 +114,7 @@ function SearchBar({ onSelectPlaylist }) {
           placeholder="Enter a mood (happy, chill, sad...)"
           value={mood}
           onChange={handleChange}
+          onFocus={() => status !== "idle" && setShowDropdown(true)}
           className="w-full p-3 rounded-xl border border-neon-purple/40
                      bg-neon-dark/60 text-white
                      focus:outline-none focus:ring-2
@@ -107,7 +131,7 @@ function SearchBar({ onSelectPlaylist }) {
 
       {/* Dropdown */}
       <AnimatePresence>
-        {showDropdown && playlists.length > 0 && (
+        {showDropdown && status !== "idle" && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,37 +144,67 @@ function SearchBar({ onSelectPlaylist }) {
                        shadow-[0_0_20px_#a855f755]
                        max-h-80 overflow-y-auto z-50
                        backdrop-blur-sm"
+            aria-live="polite"
           >
-            {playlists.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                onClick={() => {
-                  onSelectPlaylist?.(p);
-                  setShowDropdown(false);
-                }}
-                className="w-full text-left flex items-center gap-3 p-3
-                           hover:bg-neon-purple/20
-                           transition-all duration-200"
-              >
-                <img
-                  src={p.images?.[0]?.url}
-                  alt={p.name}
-                  className="w-12 h-12 object-cover rounded-md
-                             border border-neon-purple/40"
-                />
+            {status === "loading" && (
+              <p className="p-4 text-sm text-gray-300 animate-pulse">
+                Searching…
+              </p>
+            )}
 
-                <div>
-                  <h3 className="font-semibold text-neon-glow">
-                    {p.name}
-                  </h3>
+            {status === "error" && (
+              <div className="p-4 text-center">
+                <p className="text-sm text-red-300">
+                  Couldn’t search playlists. Check that the backend is running.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => loadPlaylists(mood)}
+                  className="mt-3 px-4 py-1.5 rounded-lg text-sm
+                             bg-neon-purple/80 hover:bg-neon-purple transition"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
 
-                  <p className="text-sm text-gray-400 line-clamp-1">
-                    {p.description || "No description"}
-                  </p>
-                </div>
-              </button>
-            ))}
+            {status === "success" && playlists.length === 0 && (
+              <p className="p-4 text-sm text-gray-300 text-center">
+                No playlists found for “{mood.trim()}”. Try another mood.
+              </p>
+            )}
+
+            {status === "success" &&
+              playlists.map((p) => (
+                <button
+                  type="button"
+                  key={p.id}
+                  onClick={() => {
+                    onSelectPlaylist?.(p);
+                    setShowDropdown(false);
+                  }}
+                  className="w-full text-left flex items-center gap-3 p-3
+                             hover:bg-neon-purple/20
+                             transition-all duration-200"
+                >
+                  <img
+                    src={p.images?.[0]?.url}
+                    alt={p.name}
+                    className="w-12 h-12 object-cover rounded-md
+                               border border-neon-purple/40"
+                  />
+
+                  <div>
+                    <h3 className="font-semibold text-neon-glow">
+                      {p.name}
+                    </h3>
+
+                    <p className="text-sm text-gray-400 line-clamp-1">
+                      {p.description || "No description"}
+                    </p>
+                  </div>
+                </button>
+              ))}
           </motion.div>
         )}
       </AnimatePresence>
