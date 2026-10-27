@@ -1,5 +1,6 @@
 // src/pages/AuthPage.jsx
 import React, { useState, useEffect, useCallback } from "react";
+import { getDisplayName } from "../userName";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 import "../styles/clipShapes.css";
@@ -96,7 +97,7 @@ export default function AuthPage() {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#2a0a4a] to-[#100018] text-white relative">
         <h2 className="text-3xl font-bold mb-2">
-          Welcome, {user.user_metadata?.username || user.email}!
+          Welcome, {getDisplayName(user)}!
         </h2>
         <p className="text-neon-purple mt-3 text-lg animate-pulse">
           Preparing your Vibemotion experience...

@@ -1,5 +1,6 @@
 // src/pages/MainPage.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { getDisplayName } from "../userName";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { fetchPlaylists } from "../api";
@@ -46,7 +47,7 @@ export default function MainPage() {
       if (error || !data?.session?.user) {
         navigate("/auth");
       } else {
-        setUsername(data.session.user.user_metadata?.username || data.session.user.email);
+        setUsername(getDisplayName(data.session.user));
       }
     };
     fetchUser();
@@ -123,7 +124,7 @@ export default function MainPage() {
 
           <div className="flex items-center gap-4">
             {username && (
-              <span className="hidden sm:inline max-w-[14rem] truncate text-white font-medium">
+              <span className="inline max-w-[8rem] sm:max-w-[14rem] truncate text-sm sm:text-base text-white font-medium">
                 {username}
               </span>
             )}
